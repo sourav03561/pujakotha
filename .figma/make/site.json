@@ -1,0 +1,10 @@
+{
+  "description": "Streamline project management by integrating markdown and Excel resources, enabling teams to collaborate efficiently and enhance productivity.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

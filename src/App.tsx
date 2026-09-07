@@ -699,11 +699,9 @@ function FloatingCards({ day }: { day: DayData }) {
 function MusicPlayer({
   day,
   muted,
-  onAutoplayFallback,
 }: {
   day: DayData
   muted: boolean
-  onAutoplayFallback: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [playing, setPlaying] = useState(false)
@@ -717,7 +715,9 @@ function MusicPlayer({
   const playerHostRef = useRef<HTMLDivElement | null>(null)
   const playerRef = useRef<YouTubePlayer | null>(null)
   const shouldPlayRef = useRef(false)
-  const autoplayFallbackAttemptedRef = useRef(false)
+  const mutedRef = useRef(muted)
+  const autoplayUnlockCleanupRef = useRef<(() => void) | null>(null)
+  mutedRef.current = muted
 
   const songs = day.songs.filter((s) => s.status !== "DUPLICATE")
   const current = songs[trackIdx] ?? songs[0]
@@ -746,7 +746,10 @@ function MusicPlayer({
             onReady: (event) => {
               if (cancelled) return
               playerRef.current = event.target
-              if (muted) event.target.mute()
+              // Keep the player explicitly in sync with the UI state.
+              // The app starts with muted = false, so the first state is UNMUTED.
+              if (mutedRef.current) event.target.mute()
+              else event.target.unMute()
               setPlayerReady(true)
             },
             onStateChange: (event) => {
@@ -782,23 +785,40 @@ function MusicPlayer({
               )
             },
             onAutoplayBlocked: () => {
-              if (!autoplayFallbackAttemptedRef.current) {
-                autoplayFallbackAttemptedRef.current = true
-                shouldPlayRef.current = true
-                onAutoplayFallback()
-                playerRef.current?.mute()
-                playerRef.current?.playVideo()
-                setPlaybackMessage(
-                  "Autoplay started muted. Use the speaker button for sound.",
-                )
-                return
-              }
-
+              // Never silently switch to muted mode. If the browser blocks sound
+              // autoplay, keep the UI UNMUTED and retry on the first user gesture.
               shouldPlayRef.current = false
               setPlaying(false)
               setPlaybackMessage(
-                "Playback was blocked by the browser. Press play to try again.",
+                "Sound is ready. Tap/click once anywhere to start the music.",
               )
+
+              autoplayUnlockCleanupRef.current?.()
+
+              const resumeAfterUserGesture = () => {
+                autoplayUnlockCleanupRef.current?.()
+
+                const player = playerRef.current
+                if (!player) return
+
+                shouldPlayRef.current = true
+                if (mutedRef.current) player.mute()
+                else player.unMute()
+                player.playVideo()
+              }
+
+              window.addEventListener("pointerdown", resumeAfterUserGesture, {
+                once: true,
+              })
+              window.addEventListener("keydown", resumeAfterUserGesture, {
+                once: true,
+              })
+
+              autoplayUnlockCleanupRef.current = () => {
+                window.removeEventListener("pointerdown", resumeAfterUserGesture)
+                window.removeEventListener("keydown", resumeAfterUserGesture)
+                autoplayUnlockCleanupRef.current = null
+              }
             },
           },
         })
@@ -812,6 +832,7 @@ function MusicPlayer({
 
     return () => {
       cancelled = true
+      autoplayUnlockCleanupRef.current?.()
       playerRef.current?.destroy()
       playerRef.current = null
     }
@@ -820,7 +841,6 @@ function MusicPlayer({
   }, [])
 
   useEffect(() => {
-    autoplayFallbackAttemptedRef.current = false
     shouldPlayRef.current = true
     setTrackIdx(0)
     setProgress(0)
@@ -1240,7 +1260,7 @@ function Hero({
   onDayChange: (id: DayId) => void
 }) {
   const [slideIndex, setSlideIndex] = useState(0)
-  const touchStartRef = useRef<{ x: number y: number } | null>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const currentSlide = day.slides[slideIndex] ?? day.slides[0]
 
   const moveSlide = useCallback(
@@ -1781,7 +1801,7 @@ function ChapterSection({ day }: { day: DayData }) {
   )
 }
 
-function SongCard({ song, accent }: { song: Song accent: string }) {
+function SongCard({ song, accent }: { song: Song; accent: string }) {
   return (
     <a
       href={song.url}
@@ -1913,10 +1933,6 @@ export default function App() {
     setActiveDayId(id)
   }, [])
 
-  const handleAutoplayFallback = useCallback(() => {
-    setMuted(true)
-  }, [])
-
   return (
     <div
       className="day-transition h-screen h-[100dvh] overflow-hidden relative"
@@ -1929,11 +1945,7 @@ export default function App() {
         onToggleMute={() => setMuted((value) => !value)}
       />
       <Hero key={activeDay.id} day={activeDay} onDayChange={handleDayChange} />
-      <MusicPlayer
-        day={activeDay}
-        muted={muted}
-        onAutoplayFallback={handleAutoplayFallback}
-      />
+      <MusicPlayer day={activeDay} muted={muted} />
     </div>
   )
 }

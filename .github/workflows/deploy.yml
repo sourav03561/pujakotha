@@ -1,0 +1,79 @@
+name: CI/CD Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Package Dist Artifact
+        run: |
+          COPYFILE_DISABLE=1 tar -czf agomoni-site.tar.gz -C dist .
+
+      - name: Upload Build to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST || '72.61.243.226' }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "agomoni-site.tar.gz"
+          target: "/tmp/"
+
+      - name: Activate Zero-Downtime Release on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST || '72.61.243.226' }}
+          username: ${{ secrets.VPS_USER || 'root' }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            RELEASE_TAG=$(date +%Y%m%d-%H%M%S)
+            RELEASE_DIR="/var/www/agomoni/releases/$RELEASE_TAG"
+
+            echo "Deploying release: $RELEASE_TAG"
+            install -d -m 755 "$RELEASE_DIR"
+            tar -xzf /tmp/agomoni-site.tar.gz -C "$RELEASE_DIR"
+            chown -R www-data:www-data "$RELEASE_DIR"
+
+            # Switch symlink atomically
+            ln -sfn "$RELEASE_DIR" /var/www/agomoni/current
+
+            # Verify and reload Nginx
+            nginx -t && systemctl reload nginx
+
+            # Cleanup temporary archive
+            rm -f /tmp/agomoni-site.tar.gz
+
+            # Keep only the 5 most recent releases for easy rollback
+            cd /var/www/agomoni/releases
+            ls -1dt * | tail -n +6 | xargs -r rm -rf
+
+            echo "Deployment completed successfully. Active release: $RELEASE_DIR"

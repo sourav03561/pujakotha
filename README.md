@@ -1,4 +1,3 @@
-# pujakotha
 # Resource Management Tool
 
 A React application built with Vite, TypeScript, and Tailwind CSS.

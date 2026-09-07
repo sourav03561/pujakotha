@@ -294,87 +294,192 @@ function ReviewBadge() {
   )
 }
 
-// ── Floating Nav ──────────────────────────────────────────────────────────────
+// ── Responsive Header ─────────────────────────────────────────────────────────
 
-function ThemeSwitch({
+function Header({
   activeDay,
   onDayChange,
+  muted,
+  onToggleMute,
 }: {
   activeDay: DayData
   onDayChange: (id: DayId) => void
+  muted: boolean
+  onToggleMute: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    document.addEventListener("touchstart", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("touchstart", handleClickOutside)
+    }
+  }, [open])
+
   return (
-    <div
-      className="absolute top-5 left-1/2 z-40"
-      style={{ transform: "translateX(-50%)" }}
+    <header
+      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 sm:px-6 md:px-12 pointer-events-auto"
+      style={{
+        paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+      }}
     >
-      <div className="flex items-center gap-3">
-        <p
-          className="hidden sm:block pill whitespace-nowrap"
+      {/* Brand & Chapter Indicator */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <span
+          className="bengali font-bold tracking-wide select-none"
           style={{
-            color: "rgba(242,237,230,.78)",
-            textShadow: "0 1px 14px rgba(0,0,0,.75)",
+            fontSize: "clamp(20px, 4vw, 24px)",
+            color: "#F2EDE6",
+            textShadow: "0 2px 16px rgba(0,0,0,0.7)",
           }}
         >
-          {String(activeDay.seq).padStart(2, "0")} / 05 —{" "}
-          {activeDay.name.toUpperCase()}
-        </p>
-        <button
-          onClick={() => setOpen(!open)}
-          className="theme-switch-pill flex items-center gap-2 rounded-full px-4 py-2.5"
-          aria-expanded={open}
-          aria-controls="theme-menu"
+          আগমনী
+        </span>
+        <span
+          className="pill hidden xs:inline-block px-2 py-0.5 rounded-full"
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            color: "rgba(242,237,230,0.5)",
+            fontSize: 9,
+          }}
         >
-          <span className="pill" style={{ color: "#fff", fontWeight: 700 }}>
-            CHANGE THEME
-          </span>
-          <span style={{ color: activeDay.accent }}>
-            <IconChevronDown size={13} />
-          </span>
-        </button>
+          AGOMONI
+        </span>
+        <span
+          className="pill sm:hidden px-2 py-0.5 rounded-full font-bold"
+          style={{
+            color: activeDay.accent,
+            background: `rgba(${hexToRgb(activeDay.accent)},0.14)`,
+            border: `1px solid ${activeDay.accent}44`,
+            fontSize: 9,
+          }}
+        >
+          {String(activeDay.seq).padStart(2, "0")}/05
+        </span>
       </div>
-      {open && (
-        <div
-          id="theme-menu"
-          className="theme-menu absolute top-full mt-3 left-1/2 -translate-x-1/2 rounded-2xl p-2 flex flex-col"
-          style={{ width: "min(286px, calc(100vw - 32px))" }}
-        >
-          {days.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => {
-                onDayChange(d.id)
-                setOpen(false)
-              }}
-              className="flex items-center justify-between text-left rounded-xl px-4 py-3 transition-colors"
+
+      {/* Right Controls Group */}
+      <div className="flex items-center gap-1.5 sm:gap-2.5">
+        {/* Theme / Day Selector */}
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="theme-switch-pill flex items-center gap-1.5 sm:gap-2 rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2"
+            aria-expanded={open}
+            aria-controls="theme-menu"
+          >
+            <span
+              className="pill font-bold"
               style={{
-                fontSize: 11,
-                letterSpacing: ".12em",
-                color:
-                  d.id === activeDay.id
-                    ? activeDay.accent
-                    : "rgba(242,237,230,.64)",
-                fontWeight: d.id === activeDay.id ? 700 : 500,
-                background:
-                  d.id === activeDay.id
-                    ? `rgba(${hexToRgb(activeDay.accent)},.12)`
-                    : "transparent",
+                color: "#fff",
+                fontSize: "clamp(9px, 2.2vw, 10px)",
+                letterSpacing: "0.1em",
               }}
             >
-              <span>
-                {String(d.seq).padStart(2, "0")} — {d.name.toUpperCase()}
+              <span className="hidden sm:inline">
+                {String(activeDay.seq).padStart(2, "0")} —{" "}
+                {activeDay.name.toUpperCase()}
               </span>
-              <span
-                style={{ fontSize: 9, opacity: d.id === activeDay.id ? 1 : 0 }}
-              >
-                CURRENT
-              </span>
-            </button>
-          ))}
+              <span className="sm:hidden">{activeDay.name.toUpperCase()}</span>
+            </span>
+            <span style={{ color: activeDay.accent }}>
+              <IconChevronDown size={12} />
+            </span>
+          </button>
+
+          {open && (
+            <div
+              id="theme-menu"
+              className="theme-menu absolute top-full mt-2 right-0 rounded-2xl p-1.5 sm:p-2 flex flex-col shadow-2xl z-50"
+              style={{ width: "min(280px, calc(100vw - 24px))" }}
+            >
+              {days.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => {
+                    onDayChange(d.id)
+                    setOpen(false)
+                  }}
+                  className="flex items-center justify-between text-left rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 transition-colors"
+                  style={{
+                    fontSize: 11,
+                    letterSpacing: ".12em",
+                    color:
+                      d.id === activeDay.id
+                        ? activeDay.accent
+                        : "rgba(242,237,230,.64)",
+                    fontWeight: d.id === activeDay.id ? 700 : 500,
+                    background:
+                      d.id === activeDay.id
+                        ? `rgba(${hexToRgb(activeDay.accent)},.12)`
+                        : "transparent",
+                  }}
+                >
+                  <span className="truncate">
+                    {String(d.seq).padStart(2, "0")} — {d.name.toUpperCase()}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      opacity: d.id === activeDay.id ? 1 : 0,
+                      color: activeDay.accent,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    CURRENT
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Live counter */}
+        <div
+          className="glass flex h-8 sm:h-9 min-w-8 sm:min-w-9 items-center justify-center gap-1.5 rounded-full px-2 sm:px-2.5"
+          aria-label="1 user online"
+          title="1 user online"
+        >
+          <span
+            className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-400"
+            style={{ boxShadow: "0 0 9px rgba(52,211,153,0.9)" }}
+            aria-hidden="true"
+          />
+          <span
+            style={{
+              color: "rgba(242,237,230,0.82)",
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            1
+          </span>
+        </div>
+
+        {/* Sound toggle */}
+        <button
+          type="button"
+          onClick={onToggleMute}
+          className="glass flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full transition-colors active:scale-95"
+          style={{ color: muted ? "rgba(242,237,230,0.42)" : activeDay.accent }}
+          aria-label={muted ? "Unmute music" : "Mute music"}
+        >
+          <IconSound muted={muted} />
+        </button>
+      </div>
+    </header>
   )
 }
 
@@ -464,7 +569,7 @@ function InfoPills({
   index: number
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5 sm:gap-2">
       <Pill label={`IMAGE ${String(index + 1).padStart(2, "0")} / 05`} />
       <Pill label={image.usage} />
       <Pill
@@ -478,11 +583,11 @@ function InfoPills({
 function Pill({ label }: { label: string }) {
   return (
     <span
-      className="pill px-3 py-1.5 rounded-full"
+      className="pill px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[9px] sm:text-[10px]"
       style={{
         background: "rgba(255,255,255,0.07)",
         border: "1px solid rgba(255,255,255,0.10)",
-        color: "rgba(242,237,230,0.55)",
+        color: "rgba(242,237,230,0.60)",
       }}
     >
       {label}
@@ -837,24 +942,25 @@ function MusicPlayer({
       </div>
 
       <div
-        className="fixed bottom-5 left-1/2 z-50 rounded-2xl shadow-2xl"
+        className="fixed left-1/2 z-50 rounded-2xl shadow-2xl transition-all duration-300 pointer-events-auto"
         style={{
+          bottom: "max(0.75rem, env(safe-area-inset-bottom))",
           transform: "translateX(-50%)",
-          background: "rgba(10,8,16,0.82)",
+          background: "rgba(10,8,16,0.86)",
           backdropFilter: "blur(22px) saturate(1.6)",
           WebkitBackdropFilter: "blur(22px) saturate(1.6)",
-          border: "1px solid rgba(255,255,255,0.09)",
-          width: expanded ? 420 : 340,
-          maxWidth: "calc(100vw - 32px)",
-          transition: "width 0.35s ease",
+          border: "1px solid rgba(255,255,255,0.10)",
+          width: expanded
+            ? "min(420px, calc(100vw - 1.25rem))"
+            : "min(350px, calc(100vw - 1.25rem))",
         }}
       >
         {/* Collapsed / main row */}
-        <div className="flex items-center gap-3 p-3">
+        <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3">
           {/* Artwork */}
           <div
-            className="relative shrink-0 rounded-xl overflow-hidden"
-            style={{ width: 44, height: 44, background: "#222" }}
+            className="relative shrink-0 rounded-xl overflow-hidden shadow"
+            style={{ width: 40, height: 40, background: "#222" }}
           >
             <img
               src={day.artworkUrl}
@@ -872,12 +978,12 @@ function MusicPlayer({
           </div>
 
           {/* Track info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex-1 min-w-0 pr-1">
+            <div className="flex items-center gap-1 min-w-0">
               <p
                 className="truncate"
                 style={{
-                  fontSize: 12,
+                  fontSize: 11.5,
                   fontWeight: 600,
                   color: "#F2EDE6",
                   lineHeight: 1.3,
@@ -909,13 +1015,14 @@ function MusicPlayer({
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             <CtrlBtn onClick={prev} label="Previous">
               <IconSkipBack />
             </CtrlBtn>
             <button
+              type="button"
               onClick={togglePlayback}
-              className="flex items-center justify-center rounded-full transition-all"
+              className="flex items-center justify-center rounded-full transition-all active:scale-95"
               style={{
                 width: 34,
                 height: 34,
@@ -934,9 +1041,10 @@ function MusicPlayer({
 
           {/* Expand toggle */}
           <button
+            type="button"
             onClick={() => setExpanded(!expanded)}
-            className="shrink-0 p-1.5"
-            style={{ color: "rgba(242,237,230,0.40)" }}
+            className="shrink-0 p-1.5 sm:p-2 transition-colors active:scale-90"
+            style={{ color: "rgba(242,237,230,0.50)" }}
             aria-label={expanded ? "Collapse player" : "Expand player"}
           >
             {expanded ? <IconChevronDown /> : <IconChevronUp />}
@@ -946,7 +1054,7 @@ function MusicPlayer({
         {/* Progress bar */}
         <div className="px-3 pb-2">
           <div
-            className="player-progress"
+            className="py-2 -my-1.5 cursor-pointer touch-manipulation"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect()
               const nextProgress = Math.min(
@@ -961,13 +1069,15 @@ function MusicPlayer({
               }
             }}
           >
-            <div
-              className="player-progress-fill"
-              style={{ width: `${progress}%`, background: day.accent }}
-            />
+            <div className="player-progress">
+              <div
+                className="player-progress-fill"
+                style={{ width: `${progress}%`, background: day.accent }}
+              />
+            </div>
           </div>
           <div
-            className="flex justify-between mt-1"
+            className="flex justify-between -mt-1"
             style={{
               fontSize: 9,
               color: "rgba(242,237,230,0.35)",
@@ -991,11 +1101,17 @@ function MusicPlayer({
 
         {/* Expanded playlist */}
         {expanded && (
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-            <div className="px-3 py-2 flex items-center justify-between">
+          <div
+            className="max-h-[46dvh] sm:max-h-[50vh] overflow-y-auto overscroll-contain"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+          >
+            <div
+              className="px-3 py-2 flex items-center justify-between sticky top-0 backdrop-blur-md z-10"
+              style={{ background: "rgba(10,8,16,0.92)" }}
+            >
               <span
                 className="pill"
-                style={{ color: "rgba(242,237,230,0.40)" }}
+                style={{ color: "rgba(242,237,230,0.45)" }}
               >
                 {String(day.seq).padStart(2, "0")} — {day.name.toUpperCase()}{" "}
                 PLAYLIST
@@ -1124,7 +1240,7 @@ function Hero({
   onDayChange: (id: DayId) => void
 }) {
   const [slideIndex, setSlideIndex] = useState(0)
-  const swipeStart = useRef<number | null>(null)
+  const touchStartRef = useRef<{ x: number y: number } | null>(null)
   const currentSlide = day.slides[slideIndex] ?? day.slides[0]
 
   const moveSlide = useCallback(
@@ -1138,16 +1254,25 @@ function Hero({
 
   return (
     <section
-      className="relative w-full h-screen overflow-hidden day-scene"
+      className="relative w-full h-screen h-[100dvh] overflow-hidden day-scene"
       style={{ background: day.bg }}
       onTouchStart={(event) => {
-        swipeStart.current = event.touches[0].clientX
+        touchStartRef.current = {
+          x: event.touches[0].clientX,
+          y: event.touches[0].clientY,
+        }
       }}
       onTouchEnd={(event) => {
-        if (swipeStart.current === null) return
-        const delta = event.changedTouches[0].clientX - swipeStart.current
-        if (Math.abs(delta) > 48) moveSlide(delta < 0 ? 1 : -1)
-        swipeStart.current = null
+        if (!touchStartRef.current) return
+        const deltaX = event.changedTouches[0].clientX - touchStartRef.current.x
+        const deltaY = event.changedTouches[0].clientY - touchStartRef.current.y
+        touchStartRef.current = null
+        if (
+          Math.abs(deltaX) > 40 &&
+          Math.abs(deltaX) > Math.abs(deltaY) * 1.3
+        ) {
+          moveSlide(deltaX < 0 ? 1 : -1)
+        }
       }}
     >
       <button
@@ -1198,32 +1323,17 @@ function Hero({
         />
       </button>
 
-      <div className="pointer-events-none relative z-10 flex h-full flex-col px-6 pb-44 md:px-14 md:pb-36">
-        <div className="flex items-center justify-between pt-3">
-          <div
-            className="bengali"
-            style={{
-              fontSize: 22,
-              color: "#F2EDE6",
-              textShadow: "0 2px 16px rgba(0,0,0,.6)",
-            }}
-          >
-            আগমনী
-          </div>
-          <span className="pill sm:hidden" style={{ color: day.accent }}>
-            {String(day.seq).padStart(2, "0")} / 05
-          </span>
-        </div>
-
-        <div className="flex max-w-xl flex-1 flex-col justify-center pt-12 md:pt-4">
-          <div className="mb-3">
+      {/* Main Content Area */}
+      <div className="pointer-events-none relative z-10 flex h-full flex-col px-4 sm:px-8 md:px-14 pt-16 sm:pt-20 md:pt-16 pb-28 md:pb-36">
+        <div className="flex max-w-xl flex-1 flex-col justify-center py-2 sm:py-4">
+          <div className="mb-2 sm:mb-3">
             <InfoPills day={day} image={currentSlide} index={slideIndex} />
           </div>
 
           <h1
-            className="bengali leading-none mb-2"
+            className="bengali leading-none mb-1 sm:mb-2"
             style={{
-              fontSize: "clamp(48px, 7vw, 88px)",
+              fontSize: "clamp(36px, 9vw, 84px)",
               color: "#F2EDE6",
               fontWeight: 700,
               textShadow: "0 4px 32px rgba(0,0,0,0.5)",
@@ -1232,9 +1342,9 @@ function Hero({
             {day.bengali}
           </h1>
           <h2
-            className="leading-none mb-5"
+            className="leading-none mb-3 sm:mb-5"
             style={{
-              fontSize: "clamp(11px, 1.5vw, 15px)",
+              fontSize: "clamp(10px, 2.2vw, 15px)",
               letterSpacing: "0.22em",
               color: "rgba(242,237,230,0.55)",
               fontWeight: 600,
@@ -1243,13 +1353,13 @@ function Hero({
             THE JOURNEY OF MAA DURGA
           </h2>
 
-          {/* Chapter */}
-          <div className="flex items-center gap-3 mb-5">
-            <div style={{ width: 28, height: 1, background: day.accent }} />
+          {/* Chapter indicator */}
+          <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-5">
+            <div style={{ width: 24, height: 1, background: day.accent }} />
             <span
               className="leading-none"
               style={{
-                fontSize: "clamp(10px, 1.2vw, 13px)",
+                fontSize: "clamp(10px, 2.2vw, 13px)",
                 letterSpacing: "0.22em",
                 color: day.accent,
                 fontWeight: 700,
@@ -1258,9 +1368,10 @@ function Hero({
               {String(day.seq).padStart(2, "0")} — {day.name.toUpperCase()}
             </span>
           </div>
+
           <p
             style={{
-              fontSize: "clamp(22px, 3vw, 36px)",
+              fontSize: "clamp(18px, 4.5vw, 36px)",
               fontWeight: 300,
               color: "rgba(242,237,230,0.90)",
               lineHeight: 1.2,
@@ -1270,9 +1381,9 @@ function Hero({
             {day.theme}
           </p>
           <p
-            className="mt-2"
+            className="mt-1.5 sm:mt-2"
             style={{
-              fontSize: "clamp(11px, 1.2vw, 13px)",
+              fontSize: "clamp(10px, 2.2vw, 13px)",
               color: "rgba(242,237,230,0.42)",
               letterSpacing: "0.04em",
             }}
@@ -1280,9 +1391,9 @@ function Hero({
             {day.atmosphere}
           </p>
 
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+          <div className="mt-4 sm:mt-6 flex flex-wrap items-center gap-2 sm:gap-3">
             <span
-              className="pill rounded-full px-4 py-2"
+              className="pill rounded-full px-3 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[10px]"
               style={{
                 background: day.accent,
                 color: "#0A0B14",
@@ -1291,32 +1402,40 @@ function Hero({
             >
               {currentSlide.usage}
             </span>
-            <span className="pill" style={{ color: "rgba(242,237,230,0.58)" }}>
-              CLICK THE IMAGE OR USE THE ARROWS
+            <span
+              className="pill text-[9px] sm:text-[10px]"
+              style={{ color: "rgba(242,237,230,0.58)" }}
+            >
+              <span className="sm:hidden">SWIPE OR TAP TO EXPLORE</span>
+              <span className="hidden sm:inline">CLICK OR USE ARROWS</span>
             </span>
             {currentSlide.needsReview && <ReviewBadge />}
           </div>
         </div>
       </div>
 
+      {/* Desktop Navigation Arrows */}
       <button
+        type="button"
         onClick={() => moveSlide(-1)}
-        className="theme-arrow theme-arrow-left"
+        className="theme-arrow theme-arrow-left hidden sm:flex"
         aria-label="Previous image"
       >
         <span aria-hidden>←</span>
         <small>PREVIOUS IMAGE</small>
       </button>
       <button
+        type="button"
         onClick={() => moveSlide(1)}
-        className="theme-arrow theme-arrow-right"
+        className="theme-arrow theme-arrow-right hidden sm:flex"
         aria-label="Next image"
       >
         <small>NEXT IMAGE</small>
         <span aria-hidden>→</span>
       </button>
 
-      <div className="pointer-events-auto absolute bottom-28 left-1/2 z-30 w-[min(92vw,620px)] -translate-x-1/2">
+      {/* Desktop Slide Thumbnails & Day Progress Control */}
+      <div className="pointer-events-auto absolute bottom-28 left-1/2 z-30 w-[min(92vw,620px)] -translate-x-1/2 hidden md:block">
         <div className="mb-3 flex items-center justify-center gap-3">
           {days.map((theme) => (
             <button
@@ -1391,6 +1510,77 @@ function Hero({
               </span>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Mobile Slide Navigation: Sleek Segmented Progress Bars & Day Jump */}
+      <div className="pointer-events-auto absolute bottom-24 sm:bottom-28 left-1/2 -translate-x-1/2 z-30 w-[min(92vw,360px)] md:hidden">
+        {/* Day Jump Dots */}
+        <div className="mb-2 flex items-center justify-center gap-2.5">
+          {days.map((theme) => (
+            <button
+              key={theme.id}
+              type="button"
+              onClick={() => onDayChange(theme.id)}
+              className="p-1 flex items-center"
+              aria-label={`Jump to ${theme.name}`}
+            >
+              <span
+                className="rounded-full transition-all duration-300"
+                style={{
+                  width: theme.id === day.id ? 16 : 5,
+                  height: 4,
+                  background:
+                    theme.id === day.id ? day.accent : "rgba(242,237,230,0.28)",
+                  boxShadow:
+                    theme.id === day.id ? `0 0 8px ${day.accent}88` : "none",
+                }}
+              />
+            </button>
+          ))}
+        </div>
+
+        {/* Slide Segmented Progress Bars & Counter */}
+        <div
+          className="glass-light flex items-center justify-between gap-2 rounded-full px-3 py-1.5 shadow-lg"
+          style={{
+            background: "rgba(10,8,16,0.65)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }}
+        >
+          <div className="flex flex-1 items-center gap-1.5">
+            {day.slides.map((slide, index) => (
+              <button
+                key={slide.id}
+                type="button"
+                onClick={() => setSlideIndex(index)}
+                className="group relative flex-1 py-1.5"
+                aria-label={`Go to slide ${index + 1}`}
+              >
+                <div
+                  className="h-1 rounded-full transition-all duration-300"
+                  style={{
+                    background:
+                      index === slideIndex
+                        ? day.accent
+                        : "rgba(242,237,230,0.25)",
+                    boxShadow:
+                      index === slideIndex ? `0 0 6px ${day.accent}99` : "none",
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0 pl-1 border-l border-white/10">
+            <span
+              className="pill font-semibold"
+              style={{ fontSize: 9, color: "rgba(242,237,230,0.72)" }}
+            >
+              {String(slideIndex + 1).padStart(2, "0")} / 05
+            </span>
+          </div>
         </div>
       </div>
     </section>
@@ -1729,39 +1919,15 @@ export default function App() {
 
   return (
     <div
-      className="day-transition h-screen overflow-hidden"
+      className="day-transition h-screen h-[100dvh] overflow-hidden relative"
       style={{ background: activeDay.bg }}
     >
-      <ThemeSwitch activeDay={activeDay} onDayChange={handleDayChange} />
-      <div
-        className="glass fixed right-[4.5rem] top-5 z-40 flex h-10 min-w-10 items-center justify-center gap-2 rounded-full px-3"
-        aria-label="1 user online"
-        title="1 user online"
-      >
-        <span
-          className="h-2 w-2 rounded-full bg-emerald-400"
-          style={{ boxShadow: "0 0 9px rgba(52,211,153,0.9)" }}
-          aria-hidden="true"
-        />
-        <span
-          style={{
-            color: "rgba(242,237,230,0.82)",
-            fontSize: 11,
-            fontWeight: 700,
-          }}
-        >
-          1
-        </span>
-      </div>
-      <button
-        type="button"
-        onClick={() => setMuted((value) => !value)}
-        className="glass fixed right-5 top-5 z-40 flex h-10 w-10 items-center justify-center rounded-full"
-        style={{ color: muted ? "rgba(242,237,230,0.42)" : activeDay.accent }}
-        aria-label={muted ? "Unmute music" : "Mute music"}
-      >
-        <IconSound muted={muted} />
-      </button>
+      <Header
+        activeDay={activeDay}
+        onDayChange={handleDayChange}
+        muted={muted}
+        onToggleMute={() => setMuted((value) => !value)}
+      />
       <Hero key={activeDay.id} day={activeDay} onDayChange={handleDayChange} />
       <MusicPlayer
         day={activeDay}

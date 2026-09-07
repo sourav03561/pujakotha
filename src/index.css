@@ -7,10 +7,13 @@ html,
 body,
 #root {
   height: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
 }
 
 * {
   scrollbar-width: none;
+  -webkit-tap-highlight-color: transparent;
 }
 *::-webkit-scrollbar {
   display: none;
@@ -21,6 +24,7 @@ body {
   background: #0A0B14;
   color: #F2EDE6;
   overflow: hidden;
+  touch-action: manipulation;
 }
 
 .bengali {
@@ -51,9 +55,9 @@ body {
 
 .theme-switch-pill,
 .theme-menu {
-  background: rgba(42, 24, 18, 0.72);
+  background: rgba(42, 24, 18, 0.76);
   border: 1px solid rgba(225, 181, 112, 0.42);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32), inset 0 1px rgba(255, 255, 255, 0.07);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(16px) saturate(1.25);
   -webkit-backdrop-filter: blur(16px) saturate(1.25);
 }
@@ -64,7 +68,7 @@ body {
 
 .theme-switch-pill:hover {
   transform: translateY(-1px);
-  background: rgba(58, 33, 24, 0.84);
+  background: rgba(58, 33, 24, 0.88);
 }
 
 .theme-arrow {
@@ -84,13 +88,13 @@ body {
   -webkit-backdrop-filter: blur(12px);
   color: rgba(242, 237, 230, 0.88);
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.72);
-  transition: color 250ms ease, transform 250ms ease;
+  transition: color 250ms ease, transform 250ms ease, opacity 250ms ease;
 }
 
 .theme-arrow:hover { color: #fff; }
-.theme-arrow-left { left: 10px; transform: translateY(-50%); }
+.theme-arrow-left { left: 14px; transform: translateY(-50%); }
 .theme-arrow-left:hover { transform: translate(-3px, -50%); }
-.theme-arrow-right { right: 10px; transform: translateY(-50%); }
+.theme-arrow-right { right: 14px; transform: translateY(-50%); }
 .theme-arrow-right:hover { transform: translate(3px, -50%); }
 .theme-arrow span { font-size: 29px; font-weight: 300; line-height: 1; }
 .theme-arrow small { display: none; }
@@ -104,12 +108,21 @@ body {
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
-@media (max-width: 640px) {
-  .theme-arrow { top: 55%; padding: 14px 8px; }
-  .theme-arrow small { display: none; }
-  .theme-arrow span { font-size: 28px; }
-  .theme-arrow-left { left: 3px; }
-  .theme-arrow-right { right: 3px; }
+@media (max-width: 768px) {
+  .theme-arrow {
+    width: 36px;
+    height: 36px;
+    background: rgba(10, 8, 14, 0.38);
+  }
+  .theme-arrow span { font-size: 22px; }
+  .theme-arrow-left { left: 8px; }
+  .theme-arrow-right { right: 8px; }
+}
+
+@media (max-width: 480px) {
+  .theme-arrow {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

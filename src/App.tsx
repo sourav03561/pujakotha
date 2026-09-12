@@ -1921,6 +1921,140 @@ function Footer() {
   )
 }
 
+// ── Live Chat ─────────────────────────────────────────────────────────────────
+
+function LiveChat({ accent }: { accent: string }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [msg, setMsg] = useState("")
+  const [toasts, setToasts] = useState<{ id: string; text: string }[]>([])
+  const channelRef = useRef<BroadcastChannel | null>(null)
+
+  useEffect(() => {
+    const channel = new BroadcastChannel("live-chat")
+    channelRef.current = channel
+    channel.onmessage = (event) => {
+      showToast(event.data)
+    }
+    return () => {
+      channel.close()
+      channelRef.current = null
+    }
+  }, [])
+
+  const showToast = (text: string) => {
+    const id = Math.random().toString(36).substring(7)
+    setToasts((t) => [...t, { id, text }])
+    setTimeout(() => {
+      setToasts((t) => t.filter((x) => x.id !== id))
+    }, 4000)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!msg.trim()) return
+
+    if (channelRef.current) {
+      channelRef.current.postMessage(msg)
+    }
+
+    showToast(msg)
+    setMsg("")
+    setIsOpen(false)
+  }
+
+  return (
+    <>
+      <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className="glass px-4 py-2 rounded-full shadow-lg whitespace-nowrap"
+            style={{
+              background: "rgba(10,8,16,0.85)",
+              border: `1px solid ${accent}44`,
+              color: "#fff",
+              animation: "toast-in 0.3s ease-out forwards",
+            }}
+          >
+            <span style={{ color: accent, marginRight: 8, fontWeight: 700 }}>User:</span>
+            {t.text}
+          </div>
+        ))}
+      </div>
+
+      <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[60] flex flex-col items-end gap-3 pointer-events-auto">
+        {isOpen && (
+          <form
+            onSubmit={handleSubmit}
+            className="glass p-3 rounded-2xl flex flex-col gap-2 shadow-2xl"
+            style={{
+              width: 260,
+              background: "rgba(10,8,16,0.9)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              backdropFilter: "blur(16px)",
+            }}
+          >
+            <div className="flex justify-between items-center px-1">
+              <span
+                className="pill font-bold"
+                style={{ fontSize: 10, color: "rgba(242,237,230,0.7)" }}
+              >
+                LIVE CHAT
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                style={{ color: "rgba(242,237,230,0.5)" }}
+              >
+                <IconClose />
+              </button>
+            </div>
+            <textarea
+              value={msg}
+              onChange={(e) => setMsg(e.target.value)}
+              placeholder="Type a message..."
+              rows={2}
+              className="w-full bg-black/40 text-white p-2 rounded-xl text-sm border border-white/10 focus:border-white/30 focus:outline-none resize-none"
+            />
+            <button
+              type="submit"
+              className="w-full py-1.5 rounded-xl font-bold transition-transform active:scale-95"
+              style={{ background: accent, color: "#000", fontSize: 11 }}
+            >
+              SUBMIT
+            </button>
+          </form>
+        )}
+
+        {!isOpen && (
+          <button
+            onClick={() => setIsOpen(true)}
+            className="glass flex items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
+            style={{
+              width: 48,
+              height: 48,
+              background: `linear-gradient(135deg, ${accent}88, rgba(10,8,16,0.9))`,
+              border: `1px solid ${accent}66`,
+            }}
+            aria-label="Open Live Chat"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#fff"
+              strokeWidth="2"
+            >
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </>
+  )
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -1946,6 +2080,7 @@ export default function App() {
       />
       <Hero key={activeDay.id} day={activeDay} onDayChange={handleDayChange} />
       <MusicPlayer day={activeDay} muted={muted} />
+      <LiveChat accent={activeDay.accent} />
     </div>
   )
 }
